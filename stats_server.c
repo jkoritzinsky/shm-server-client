@@ -14,10 +14,13 @@ key_t key;
 int id;
 sem_t* mutex;
 
-void handle_exit(){
+void handle_exit();
+
+void handle_signal(int sig)
+{
   shmctl(id, IPC_RMID, NULL);
   sem_unlink("shm_semaphore_537_p3a_crossDiscussion");
-  _exit(0);
+  exit(0);
 }
 
 void usage(char* exec)
@@ -46,13 +49,13 @@ int main(int argc, char*argv[])
         }
   }
 
-  id = shmget(key, 1, IPC_CREAT | IPC_EXCL);
+  id = shmget(key, sysconf(_SC_PAGESIZE), IPC_CREAT | IPC_EXCL | 0660);
   if(id == -1){
     perror("shmget");
     exit(1);
   }
-  atexit(handle_exit);
-
+  signal(SIGINT, handle_signal);
+  
   stats_t* shm = shmat(id, NULL, 0);
   if(shm == (void*)-1){
     perror("shmat");
@@ -63,9 +66,9 @@ int main(int argc, char*argv[])
   int i = 0, j = 0;
   for(;;++i){
     sleep(1);
-    for(stat = shm; j<16; ++j, ++shm){
+    for(stat = shm, j=0; j<16; ++j, ++stat){
       if(stat->pid){
-        printf("%d %d %s %d %f %d\n", i, stat->pid, stat->proc_name, stat->counter, stat->cpu_secs, stat->priority);
+        printf("%d %d %s %d %.2f %d\n", i, stat->pid, stat->proc_name, stat->counter, stat->cpu_secs, stat->priority);
       }
     }
   }

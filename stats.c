@@ -13,7 +13,7 @@ sem_t *mutex;
 
 void* shm_root;
 
-stats_t* stat_init(key_t key)
+stats_t* stats_init(key_t key)
 {
    int id = shmget(key, 0, 0);
    if(id == -1)
@@ -23,10 +23,10 @@ stats_t* stat_init(key_t key)
      return NULL;
    if(mutex == NULL)
    {
-	if ((mutex = sem_open("shm_semaphore_537_p3a_crossDiscussion", O_CREAT, 0644, 1)) == SEM_FAILED) {
-	    perror("sem_open");
-	    exit(1);
-	  }
+    if ((mutex = sem_open("shm_semaphore_537_p3a_crossDiscussion", 0, 0644, 1)) == SEM_FAILED) {
+        perror("sem_open");
+        exit(1);
+      }
   }
   if(sem_wait(mutex) == -1)
   {
@@ -45,14 +45,14 @@ stats_t* stat_init(key_t key)
   return NULL;
 }
 
-int stat_unlink(key_t key)
+int stats_unlink(key_t key)
 {
    if(mutex == NULL)
    {
-	if ((mutex = sem_open("shm_semaphore_537_p3a_crossDiscussion", O_CREAT, 0644, 1)) == SEM_FAILED) {
-	    perror("sem_open");
-	    exit(1);
-	  }
+    if ((mutex = sem_open("shm_semaphore_537_p3a_crossDiscussion", 0, 0644, 1)) == SEM_FAILED) {
+        perror("sem_open");
+        exit(1);
+      }
   }
   if(sem_wait(mutex) == -1)
   {
