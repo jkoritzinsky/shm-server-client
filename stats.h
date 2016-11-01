@@ -1,3 +1,6 @@
+#include <sys/ipc.h>
+#include <sys/shm.h>
+
 typedef struct {
   // You may add any new fields that you believe are necessary
   int pid;          // Do not remove or change
