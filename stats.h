@@ -1,5 +1,6 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
+#include <semaphore.h>
 
 typedef struct {
   // You may add any new fields that you believe are necessary
@@ -14,3 +15,7 @@ typedef struct {
 stats_t* stats_init(key_t key);
 
 int stats_unlink(key_t key);
+
+
+
+extern sem_t* mutex;

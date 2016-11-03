@@ -14,11 +14,13 @@ key_t key;
 int id;
 sem_t* mutex;
 
-void handle_exit();
+void handle_exit() {
+  shmctl(id, IPC_RMID, NULL);
+  sem_close(mutex);
+  sem_unlink("shm_semaphore_537_p3a_crossDiscussion");
+}
 
 void handle_signal(int sig) {
-  shmctl(id, IPC_RMID, NULL);
-  sem_unlink("shm_semaphore_537_p3a_crossDiscussion");
   exit(0);
 }
 
@@ -50,6 +52,7 @@ int main(int argc, char* argv[]) {
     exit(1);
   }
   signal(SIGINT, handle_signal);
+  atexit(handle_exit);
 
   stats_t* shm = shmat(id, NULL, 0);
   if (shm == (void*)-1) {
@@ -67,5 +70,6 @@ int main(int argc, char* argv[]) {
                stat->counter, stat->cpu_secs, stat->priority);
       }
     }
+    puts("");
   }
 }

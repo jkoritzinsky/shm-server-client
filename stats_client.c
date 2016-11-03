@@ -14,10 +14,12 @@
 key_t key;
 stats_t* stats;
 
-void handle_exit();
-
 void handle_signal(int sig) {
   stats_unlink(key);
+  if (mutex != NULL) {
+    sem_close(mutex);
+    mutex = NULL;
+  }
   exit(0);
 }
 
@@ -28,6 +30,7 @@ void usage(char* exec) {
 int main(int argc, char* argv[]) {
   long sleeptime_ns = 1000;
   long cputime_ns = 1000000;
+  int priority = 1;
   char c;
   while ((c = getopt(argc, argv, "k:p:s:c:")) != -1) {
     switch (c) {
@@ -39,6 +42,7 @@ int main(int argc, char* argv[]) {
           perror("setpriority");
           return 1;
         }
+        priority = getpriority(PRIO_PROCESS, getpid());
         break;
       case 's':
         sleeptime_ns = atol(optarg);
@@ -54,23 +58,27 @@ int main(int argc, char* argv[]) {
   stats = stats_init(key);
   if (!stats) {
     fprintf(stderr, "Failed to attach client.\n");
-    return 1;
+    exit(1);
   }
   signal(SIGINT, handle_signal);
   strncpy(stats->proc_name, argv[0], 15);
   stats->proc_name[15] = '\0';
-  int i;
-  for (i = 0;; ++i) {
+  stats->priority = priority;
+  double cpu_secs = 0;
+  for (stats->counter = 0;; stats->counter++) {
     struct timespec sleep = {0, sleeptime_ns};
     nanosleep(&sleep, NULL);
+
     struct timespec current;
     clock_gettime(CLOCK_MONOTONIC, &current);
-    struct timespec spin_till = current;
+    struct timespec spin_start = current, spin_till = current;
+
     spin_till.tv_nsec += cputime_ns;
-    if (spin_till.tv_nsec / 1000000000 > 0) {
-      spin_till.tv_sec += spin_till.tv_nsec / 1000000000;
-      spin_till.tv_nsec %= 1000000000;
+    if (spin_till.tv_nsec / 1e9 > 0) {
+      spin_till.tv_sec += spin_till.tv_nsec / 1e9;
+      spin_till.tv_nsec %= (long)1e9;
     }
+
     while (1) {
       clock_gettime(CLOCK_MONOTONIC, &current);
       if (spin_till.tv_sec == current.tv_sec &&
@@ -78,13 +86,8 @@ int main(int argc, char* argv[]) {
         break;
       if (spin_till.tv_sec < current.tv_sec) break;
     }
-    struct rusage r_usage;
-    getrusage(RUSAGE_SELF, &r_usage);
-    double cpu_secs =
-        (r_usage.ru_utime.tv_sec + r_usage.ru_stime.tv_sec) +
-        (r_usage.ru_utime.tv_usec + r_usage.ru_stime.tv_usec) / 10e-6;
-    stats->counter = i;
-    stats->priority = getpriority(PRIO_PROCESS, getpid());
+    cpu_secs += (current.tv_sec - spin_start.tv_sec)
+      + (current.tv_nsec - spin_start.tv_nsec) * 1e-9;
     stats->cpu_secs = cpu_secs;
   }
 }
