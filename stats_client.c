@@ -70,7 +70,7 @@ int main(int argc, char* argv[]) {
     nanosleep(&sleep, NULL);
 
     struct timespec current;
-    clock_gettime(CLOCK_MONOTONIC, &current);
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &current);
     struct timespec spin_start = current, spin_till = current;
 
     spin_till.tv_nsec += cputime_ns;
@@ -80,7 +80,7 @@ int main(int argc, char* argv[]) {
     }
 
     while (1) {
-      clock_gettime(CLOCK_MONOTONIC, &current);
+      clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &current);
       if (spin_till.tv_sec == current.tv_sec &&
           spin_till.tv_nsec <= current.tv_nsec)
         break;
